@@ -50,7 +50,7 @@ class PanicBuying():
 
                     #将浏览器滚动条拖动到最下方,这样就会加载
                     driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
-                    time.sleep(0.01)
+                    time.sleep(1)
                 wz=wz_text.replace('##', '')
                 an = driver.find_element_by_css_selector(selector_text)
                 # 判断操作类型,这种为输入模式
@@ -81,10 +81,16 @@ class PanicBuying():
                 利用text寻找目标,然后进行操作
                 :return:
                 '''
+                if selector_text.find('等待')!=-1:
+                    time_hond = selector_text.split('等待')[-1].split('秒')[0]
+                    ms.log_add.emit(f'浏览器:{name} 等待{time_hond}秒... ')
+                    time.sleep(float(time_hond))
+                    return True
+
                 if selector_text.find('##') != -1:
                     #将浏览器滚动条拖动到最下方,这样就会加载
                     driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
-                    time.sleep(0.01)
+                    time.sleep(1)
                 r_text = selector_text.replace('##', '')
                 # 判断操作类型
                 if r_text.find('%%') != -1:
@@ -101,6 +107,7 @@ class PanicBuying():
                     if r_text not in textTrues:
                         ms.log_add.emit(f'浏览器:{name} 通过名字定位到{r_text}按钮 {driver.title}')
                         textTrues.append(r_text)
+                    return False
 
 
             def find_isTrue(wz_text: str):
@@ -130,6 +137,7 @@ class PanicBuying():
             # 正式开始
             length = tab_items.rowCount()
             for i in range(length):
+
                 try:
                     try:
                         store = tab_items.item(i, 0).text()
@@ -145,10 +153,11 @@ class PanicBuying():
                         css = ''
                     print(store,css,text)
 
+                    ms.log_add.emit(f'浏览器:{name} 接下来的任务为：{text.replace("##","拖动滚动条并且点击 ").replace("%%","无论成功失败都只点一次 ")}')
                     #如果暂停了,就卡死不动
                     run_isOrNO()
                     # 优先用css来定位
-                    if css != '' :
+                    if css != '' and text.find('等待')==-1:
                         # 尝试用css定位,如果定位成功则点击,如果定位失败则尝试使用text
                         # 直到点击成功后再下一个目标
                         while True:
@@ -164,6 +173,7 @@ class PanicBuying():
                                 try:
                                     # 尝试寻找并且尝试操作
                                     element_text(text)
+
                                 except:  # 操作失败,可能是没找到或者是已经点成功了
                                     # 判断是否是成功
                                     if find_isTrue(text) == True:
@@ -176,8 +186,9 @@ class PanicBuying():
                             # 如果暂停了,就卡死不动
                             run_isOrNO()
                             try:
-                                # 尝试寻找并且尝试操作
-                                element_text(text)
+                                # 尝试寻找并且尝试操作,如果直接点击成功
+                                if element_text(text) == True:
+                                    break
                             except:#操作失败,可能是没找到或者是已经点成功了
                                 # 判断是否是点击成功
                                 if find_isTrue(text) == True:

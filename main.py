@@ -1,31 +1,58 @@
 import threading,sys,os,pickle
 from codes.panicBuying import PanicBuying
 from PyQt5.QtWidgets import QApplication,QMainWindow,QInputDialog,QLineEdit,QMessageBox,QTableWidgetItem
-from PyQt5.QtCore import pyqtSignal,QObject,QDateTime
+from PyQt5.QtCore import pyqtSignal,QObject,QDateTime,Qt
 from PyQt5.QtGui import QIcon
-from ui.main import Ui_MainWindow
+from ui.ui_main import Ui_MainWindow
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 class Myignals(QObject):
     #定义一种信号,然后确定参数的类型
     log_add=pyqtSignal(str)
+
 def init_window_main():
     global ui_main,window_main
-    window_main.setWindowTitle('全能抢购神器2.1-请自觉关闭杀毒软件以免造成意外卡死!www.52pojie.cn')
+    window_main.setWindowTitle('全能抢购神器2.2-请自觉关闭杀毒软件以免造成意外卡死!www.52pojie.cn')
     window_main.setWindowIcon(QIcon('logo.ico'))
 
     #加载数据
-    load()
+    load(dataPath)
     # 自动调节宽度
     ui_main.tab_mban.resizeColumnsToContents()
     #绑定按钮信号
     ui_main.bt_openWeb.clicked.connect(openWeb)
     ui_main.bt_start.clicked.connect(true_or_Flase)
-    window_main.closeEvent=close
     ui_main.bt_close_all.clicked.connect(reset)
+    window_main.closeEvent=close
     ui_main.tab_mban.cellChanged.connect(cellChanged)
     ui_main.bt_add.clicked.connect(add_line)
     ui_main.bt_sub.clicked.connect(sub_line)
+
+    ui_main.tab_mban.setAcceptDrops(True) # 设置接受拖放动作
+    #ui_main.tab_mban.setDragEnabled(True)#支持主动拖动给别的控件
+    #下方这三个事件必须同时重写
+    ui_main.tab_mban.dragEnterEvent=dragEnterEvent#重写拖动输入事件
+    ui_main.tab_mban.dragMoveEvent = dragMoveEvent#重写拖动鼠标移动事件
+    ui_main.tab_mban.dropEvent=dropEvent#重写拖动松开事件
+
+
+def dragEnterEvent(e):
+    if e.mimeData().text().endswith('.pkl'):  # 拖拽过来如果是配置文件
+        e.accept()
+    else:
+        e.ignore()
+
+def dragMoveEvent(e):
+    if e.mimeData().text().endswith('.pkl'):# 拖拽过来如果是配置文件
+        e.setDropAction(Qt.MoveAction)
+        e.accept()
+    else:
+        e.ignore()
+def dropEvent(e):#松开鼠标得到路径
+    print('sdgsgsd')
+    path = e.mimeData().text().replace('file:///', '')  # 删除多余开头
+    load(path)
+
 def reset():
     global driver
     # 关闭所有的浏览器
@@ -60,14 +87,14 @@ def sub_line():
             ui_main.tab_mban.removeRow(row)
         else:
             ui_main.tab_mban.setRowCount(ui_main.tab_mban.rowCount() - 1)
-def load():
+def load(path):
     '''
     读取配置项
     :return:
     '''
     try:
 
-        with open(dataPath,'rb')as f:
+        with open(path,'rb')as f:
             setting = pickle.load(f)
 
         sets=setting['items']
@@ -142,9 +169,10 @@ def openWeb():
     try:
         driver.append(webdriver.Chrome())
     except:
-        ui_main.ed_log.append('启动浏览器失败!请确定你的有安装谷歌浏览器和根目录有chromedriver.exe,并且版本大于等于87')
+        ui_main.ed_log.append('启动浏览器失败!请确定你的有安装谷歌浏览器和根目录有chromedriver.exe版本必须对应')
         ui_main.ed_log.append('浏览器下载:https://www.google.cn/chrome/')
-        ui_main.ed_log.append('chromedriver下载:https://www.lanzoui.com/isdWeiim1ji')
+        ui_main.ed_log.append('chromedriver下载:http://npm.taobao.org/mirrors/chromedriver/')
+        ui_main.ed_log.append('【浏览器和这个驱动必须版本一致，可以根据版本去下载对应的驱动】')
         driver=[]
         return
     # 创建线程
